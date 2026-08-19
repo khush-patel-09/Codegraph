@@ -24,8 +24,19 @@ class FunctionInfo:
 
 
 @dataclass
+class ClassInfo:
+    name: str
+    bases: list[str] = field(default_factory=list)
+    docstring: str | None = None
+    methods: list[str] = field(default_factory=list)
+    start_line: int = 0
+    end_line: int = 0
+
+
+@dataclass
 class FileGraph:
     path: str
+    classes: list[ClassInfo] = field(default_factory=list)
     functions: list[FunctionInfo] = field(default_factory=list)
     calls: list[CallEdge] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
@@ -164,9 +175,33 @@ def _analyze_class(
     graph: FileGraph,
     source_lines: list[str],
 ) -> None:
+    bases = []
+    for b in node.bases:
+        if isinstance(b, ast.Name):
+            bases.append(b.id)
+        elif isinstance(b, ast.Attribute):
+            bases.append(b.attr)
+
+    docstring = ast.get_docstring(node)
+    start_line = getattr(node, "lineno", 1)
+    end_line = getattr(node, "end_lineno", start_line)
+    methods = []
+
     for item in node.body:
         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            method_name = f"{node.name}.{item.name}"
+            methods.append(method_name)
             _analyze_function(item, node.name, file_path, bindings, local_functions, graph, source_lines)
+
+    cls_info = ClassInfo(
+        name=node.name,
+        bases=bases,
+        docstring=docstring,
+        methods=methods,
+        start_line=start_line,
+        end_line=end_line,
+    )
+    graph.classes.append(cls_info)
 
 
 def parse_file(path: Path, root: Path) -> FileGraph:

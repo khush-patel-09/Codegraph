@@ -38,6 +38,37 @@ def file_impact(driver: Driver, path: str, max_depth: int = 5) -> list[dict]:
         return [dict(record) for record in result]
 
 
+def class_hierarchy(driver: Driver, class_name: str) -> dict:
+    """
+    Returns subclasses, base classes, and methods for a given class.
+    """
+    query_subclasses = """
+    MATCH (sub:Class)-[:INHERITS_FROM*1..5]->(target:Class)
+    WHERE target.name = $name
+    RETURN sub.name AS subclass, sub.file AS file
+    """
+    query_superclasses = """
+    MATCH (target:Class)-[:INHERITS_FROM*1..5]->(parent:Class)
+    WHERE target.name = $name
+    RETURN parent.name AS superclass, parent.file AS file
+    """
+    query_methods = """
+    MATCH (c:Class {name: $name})-[r:HAS_METHOD]->(m:Function)
+    RETURN m.name AS method, m.file AS file, m.docstring AS docstring
+    """
+    with driver.session() as session:
+        subclasses = [dict(r) for r in session.run(query_subclasses, name=class_name)]
+        superclasses = [dict(r) for r in session.run(query_superclasses, name=class_name)]
+        methods = [dict(r) for r in session.run(query_methods, name=class_name)]
+
+    return {
+        "class": class_name,
+        "subclasses": subclasses,
+        "superclasses": superclasses,
+        "methods": methods,
+    }
+
+
 def search_functions(driver: Driver, query_text: str, limit: int = 20) -> list[dict]:
     query = """
     MATCH (fn:Function)
@@ -55,10 +86,18 @@ def search_functions(driver: Driver, query_text: str, limit: int = 20) -> list[d
 def graph_snapshot(driver: Driver, limit: int = 200) -> dict:
     nodes_query = """
     MATCH (n)
-    WHERE n:File OR n:Function
+    WHERE n:File OR n:Function OR n:Class
     RETURN
-        CASE WHEN n:File THEN n.path ELSE n.name END AS label,
-        CASE WHEN n:File THEN 'File' ELSE 'Function' END AS type,
+        CASE 
+          WHEN n:File THEN n.path 
+          WHEN n:Class THEN n.name 
+          ELSE n.name 
+        END AS label,
+        CASE 
+          WHEN n:File THEN 'File' 
+          WHEN n:Class THEN 'Class' 
+          ELSE 'Function' 
+        END AS type,
         n.path AS file,
         n.name AS name,
         id(n) AS id
@@ -66,7 +105,7 @@ def graph_snapshot(driver: Driver, limit: int = 200) -> dict:
     """
     edges_query = """
     MATCH (a)-[r]->(b)
-    WHERE (a:File OR a:Function) AND (b:File OR b:Function)
+    WHERE (a:File OR a:Function OR a:Class) AND (b:File OR b:Function OR b:Class)
     RETURN id(a) AS source, id(b) AS target, type(r) AS rel
     LIMIT $limit
     """
@@ -80,9 +119,10 @@ def stats(driver: Driver) -> dict:
     query = """
     MATCH (f:File) WITH count(f) AS files
     MATCH (fn:Function) WITH files, count(fn) AS functions
-    MATCH ()-[c:CALLS]->() WITH files, functions, count(c) AS calls
-    MATCH ()-[i:IMPORTS]->() RETURN files, functions, calls, count(i) AS imports
+    MATCH (c:Class) WITH files, functions, count(c) AS classes
+    MATCH ()-[cl:CALLS]->() WITH files, functions, classes, count(cl) AS calls
+    MATCH ()-[i:IMPORTS]->() RETURN files, functions, classes, calls, count(i) AS imports
     """
     with driver.session() as session:
         record = session.run(query).single()
-        return dict(record) if record else {"files": 0, "functions": 0, "calls": 0, "imports": 0}
+        return dict(record) if record else {"files": 0, "functions": 0, "classes": 0, "calls": 0, "imports": 0}

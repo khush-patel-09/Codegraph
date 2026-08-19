@@ -15,7 +15,7 @@ class TestWebApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["status"], "ready")
-        self.assertEqual(len(data["tools"]), 5)
+        self.assertEqual(len(data["tools"]), 6)
 
 
 if __name__ == "__main__":

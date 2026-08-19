@@ -25,6 +25,10 @@ def setup_schema(tx) -> None:
         "CREATE CONSTRAINT function_id IF NOT EXISTS "
         "FOR (fn:Function) REQUIRE (fn.name, fn.file) IS UNIQUE"
     )
+    tx.run(
+        "CREATE CONSTRAINT class_id IF NOT EXISTS "
+        "FOR (c:Class) REQUIRE (c.name, c.file) IS UNIQUE"
+    )
 
 
 def get_git_churn(file_path: Path, root: Path) -> int:
@@ -49,6 +53,7 @@ def get_git_churn(file_path: Path, root: Path) -> int:
 def load_file(tx, graph: FileGraph, churn: int = 0) -> None:
     tx.run("MERGE (f:File {path: $path}) SET f.churn = $churn", path=graph.path, churn=churn)
 
+    # Load functions first
     for fn in graph.functions:
         tx.run(
             """
@@ -67,6 +72,42 @@ def load_file(tx, graph: FileGraph, churn: int = 0) -> None:
             line_count=fn.line_count,
             args=fn.args,
         )
+
+    # Load classes and relationships to functions & parent classes
+    for cls in graph.classes:
+        tx.run(
+            """
+            MERGE (c:Class {name: $name, file: $path})
+            SET c.docstring = $docstring
+            MERGE (f:File {path: $path})
+            MERGE (f)-[:DEFINES_CLASS]->(c)
+            """,
+            name=cls.name,
+            path=graph.path,
+            docstring=cls.docstring or "",
+        )
+        for method in cls.methods:
+            tx.run(
+                """
+                MATCH (c:Class {name: $cls_name, file: $path})
+                MATCH (fn:Function {name: $method_name, file: $path})
+                MERGE (c)-[:HAS_METHOD]->(fn)
+                """,
+                cls_name=cls.name,
+                method_name=method,
+                path=graph.path,
+            )
+        for base in cls.bases:
+            tx.run(
+                """
+                MATCH (child:Class {name: $cls_name, file: $path})
+                MERGE (parent:Class {name: $base_name})
+                MERGE (child)-[:INHERITS_FROM]->(parent)
+                """,
+                cls_name=cls.name,
+                path=graph.path,
+                base_name=base,
+            )
 
     for edge in graph.calls:
         callee_file = edge.callee_file or graph.path
@@ -116,7 +157,7 @@ def index_directory(
             graph = parse_file(path, root)
             churn = get_git_churn(path, root)
             session.execute_write(load_file, graph, churn)
-            print(f"Indexed {graph.path} ({len(graph.functions)} functions, git churn: {churn})")
+            print(f"Indexed {graph.path} ({len(graph.classes)} classes, {len(graph.functions)} functions, git churn: {churn})")
 
     driver.close()
     return len(files)

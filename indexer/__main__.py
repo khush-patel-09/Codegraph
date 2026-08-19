@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from indexer.config import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USER
-from indexer.impact import file_impact, function_impact, stats
+from indexer.impact import class_hierarchy, file_impact, function_impact, stats
 from indexer.loader import get_driver, index_directory
 from indexer.ml import find_similar_functions
 from indexer.risk import get_codebase_risk_summary, get_file_risk_scores, get_function_risk_scores
@@ -61,6 +61,15 @@ def cmd_impact(args: argparse.Namespace) -> None:
         driver.close()
 
 
+def cmd_class(args: argparse.Namespace) -> None:
+    driver = get_driver(args.uri, args.user, args.password)
+    try:
+        data = class_hierarchy(driver, args.name)
+        print(json.dumps(data, indent=2))
+    finally:
+        driver.close()
+
+
 def cmd_risk(args: argparse.Namespace) -> None:
     driver = get_driver(args.uri, args.user, args.password)
     try:
@@ -80,6 +89,15 @@ def cmd_similar(args: argparse.Namespace) -> None:
         print(json.dumps(results, indent=2))
     finally:
         driver.close()
+
+
+def cmd_watch(args: argparse.Namespace) -> None:
+    from indexer.watcher import watch_directory
+
+    root = Path(args.path).resolve()
+    if not root.is_dir():
+        raise SystemExit(f"Not a directory: {root}")
+    watch_directory(root)
 
 
 def cmd_stats(args: argparse.Namespace) -> None:
@@ -129,6 +147,10 @@ def build_parser() -> argparse.ArgumentParser:
     impact_parser.add_argument("--file", help="File path (e.g. db.py or auth.py)")
     impact_parser.set_defaults(func=cmd_impact)
 
+    class_parser = sub.add_parser("class", help="Show class hierarchy and methods")
+    class_parser.add_argument("name", help="Class name")
+    class_parser.set_defaults(func=cmd_class)
+
     risk_parser = sub.add_parser("risk", help="Find high-risk functions or files")
     risk_parser.add_argument("--category", choices=["functions", "files"], default="functions")
     risk_parser.add_argument("--limit", type=int, default=10)
@@ -139,6 +161,10 @@ def build_parser() -> argparse.ArgumentParser:
     similar_parser.add_argument("--file", help="Optional file path filter")
     similar_parser.add_argument("--limit", type=int, default=5)
     similar_parser.set_defaults(func=cmd_similar)
+
+    watch_parser = sub.add_parser("watch", help="Watch codebase for live incremental updates on file save")
+    watch_parser.add_argument("path", nargs="?", default="sample")
+    watch_parser.set_defaults(func=cmd_watch)
 
     stats_parser = sub.add_parser("stats", help="Show graph statistics")
     stats_parser.set_defaults(func=cmd_stats)

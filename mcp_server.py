@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from indexer.config import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USER
-from indexer.impact import file_impact, function_impact, stats
+from indexer.impact import class_hierarchy, file_impact, function_impact, stats
 from indexer.loader import get_driver, index_directory
 from indexer.ml import find_similar_functions
 from indexer.risk import get_file_risk_scores, get_function_risk_scores
@@ -59,6 +59,18 @@ def get_risky_components(category: str = "functions", limit: int = 10) -> str:
         driver.close()
 
 
+def get_class_details(class_name: str) -> str:
+    """
+    Get superclasses, subclasses, and methods for a given Python class name.
+    """
+    driver = get_driver()
+    try:
+        data = class_hierarchy(driver, class_name)
+        return json.dumps(data, indent=2)
+    finally:
+        driver.close()
+
+
 def query_graph(cypher_query: str) -> str:
     """
     Execute a custom read-only Cypher query against the Neo4j codebase graph database.
@@ -96,6 +108,7 @@ if mcp is not None:
     mcp.tool()(get_impact)
     mcp.tool()(find_similar)
     mcp.tool()(get_risky_components)
+    mcp.tool()(get_class_details)
     mcp.tool()(query_graph)
     mcp.tool()(index_codebase)
 

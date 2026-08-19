@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from indexer.config import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USER
-from indexer.impact import file_impact, function_impact, graph_snapshot, search_functions, stats
+from indexer.impact import class_hierarchy, file_impact, function_impact, graph_snapshot, search_functions, stats
 from indexer.loader import get_driver, index_directory
 from indexer.ml import find_similar_functions
 from indexer.risk import get_file_risk_scores, get_function_risk_scores
@@ -118,6 +118,15 @@ def api_similar(name: str = Query(min_length=1), file: str | None = None, top_k:
         driver.close()
 
 
+@app.get("/api/class")
+def api_class(name: str = Query(min_length=1)):
+    driver = get_driver()
+    try:
+        return class_hierarchy(driver, name)
+    finally:
+        driver.close()
+
+
 @app.get("/api/mcp/info")
 def api_mcp_info():
     return {
@@ -127,6 +136,7 @@ def api_mcp_info():
             {"name": "tool_get_impact", "description": "Trace downstream call/import blast radius"},
             {"name": "tool_find_similar_functions", "description": "Find semantically/structurally similar code"},
             {"name": "tool_get_risky_components", "description": "Rank highest risk functions or files"},
+            {"name": "tool_get_class_details", "description": "Get class hierarchy and methods"},
             {"name": "tool_query_graph", "description": "Run custom Cypher queries"},
             {"name": "tool_index_codebase", "description": "Re-index Python project directory"},
         ],
