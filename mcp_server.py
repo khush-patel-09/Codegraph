@@ -12,7 +12,10 @@ from indexer.risk import get_file_risk_scores, get_function_risk_scores
 
 try:
     from mcp.server.fastmcp import FastMCP
-    mcp = FastMCP("Codegraph", description="Code intelligence graph and impact analysis MCP server")
+    mcp = FastMCP(
+    "Codegraph",
+    instructions="Code intelligence graph and impact analysis MCP server"
+    )
 except ImportError:
     mcp = None
 
