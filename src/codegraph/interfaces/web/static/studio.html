@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codegraph — Code Intelligence & Architecture Graph</title>
+  <link rel="stylesheet" href="/static/studio.css" />
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="apple-navbar">
+    <div class="brand-wrapper">
+      <div class="brand-mark">CG</div>
+      <div>
+        <span class="brand-name">Codegraph</span>
+      </div>
+      <span class="brand-tag">v1.0</span>
+    </div>
+
+    <!-- Segmented Stats Indicator -->
+    <div class="stats-segmented">
+      <div class="stat-item">
+        <span>Files:</span>
+        <span class="stat-number" id="stat-files">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Functions:</span>
+        <span class="stat-number" id="stat-functions">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Classes:</span>
+        <span class="stat-number" id="stat-classes">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Calls:</span>
+        <span class="stat-number" id="stat-calls">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Imports:</span>
+        <span class="stat-number" id="stat-imports">0</span>
+      </div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+      <div id="connection-pill" class="status-indicator">
+        <div class="status-dot"></div>
+        <span id="connection-text">Connecting</span>
+      </div>
+      <button id="open-index-modal-btn" class="btn btn-primary btn-sm">
+        Index Codebase
+      </button>
+      <a href="/debug" class="btn btn-secondary btn-sm">
+        Debug Console
+      </a>
+    </div>
+  </header>
+
+  <!-- Apple Segmented Navigation Tabs -->
+  <nav class="segmented-tabs-wrapper">
+    <div class="segmented-control">
+      <button class="segmented-btn active" data-tab="graph-view">Graph</button>
+      <button class="segmented-btn" data-tab="impact-view">Blast Radius</button>
+      <button class="segmented-btn" data-tab="risk-view">Risk Analysis</button>
+      <button class="segmented-btn" data-tab="similarity-view">ML Similarity</button>
+      <button class="segmented-btn" data-tab="mcp-view">MCP Integration</button>
+    </div>
+  </nav>
+
+  <!-- Main Viewport -->
+  <main class="app-viewport">
+    <!-- Tab 1: Graph Workspace -->
+    <section id="graph-view" class="tab-pane active">
+      <div class="graph-workspace">
+        <div class="canvas-viewport">
+          <!-- Floating Controls Pill -->
+          <div class="graph-controls-pill">
+            <input type="text" id="graph-search" class="search-field" placeholder="Search component..." />
+            <div style="display: flex; gap: 4px;">
+              <span class="filter-chip active" data-type="File">Files</span>
+              <span class="filter-chip active" data-type="Function">Functions</span>
+              <span class="filter-chip active" data-type="Class">Classes</span>
+            </div>
+            <button id="physics-toggle-btn" class="btn btn-ghost btn-sm">Freeze</button>
+            <button id="refresh-graph-btn" class="btn btn-ghost btn-sm">Reload</button>
+          </div>
+
+          <!-- Vis.js Canvas -->
+          <div id="studio-graph"></div>
+        </div>
+
+        <!-- Node Inspector Drawer (Right Side) -->
+        <aside id="inspector-drawer" class="inspector-panel collapsed">
+          <div class="inspector-header">
+            <div>
+              <div id="drawer-type" class="node-type-label">FUNCTION</div>
+              <h3 id="drawer-name" class="node-title">connect</h3>
+              <div id="drawer-file" class="node-subtitle">db.py</div>
+            </div>
+            <button id="close-drawer-btn" class="btn btn-ghost btn-sm">Close</button>
+          </div>
+
+          <div class="inspector-content">
+            <!-- Metrics Row -->
+            <div>
+              <div class="section-label">Metrics</div>
+              <div class="metrics-row">
+                <div class="metric-box">
+                  <div class="metric-box-label">In-Degree (Callers)</div>
+                  <div id="drawer-in-degree" class="metric-box-val">0</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-box-label">Lines of Code</div>
+                  <div id="drawer-loc" class="metric-box-val">0</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-box-label">Git Churn (Commits)</div>
+                  <div id="drawer-churn" class="metric-box-val">0</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-box-label">Arguments</div>
+                  <div id="drawer-args-count" class="metric-box-val">0</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Action -->
+            <div>
+              <button id="drawer-simulate-impact-btn" class="btn btn-primary btn-sm" style="width: 100%;">
+                Simulate Downstream Blast Radius
+              </button>
+            </div>
+
+            <!-- Docstring Container -->
+            <div id="drawer-docstring-section">
+              <div class="section-label">Docstring</div>
+              <p id="drawer-docstring" style="font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-surface-tertiary); padding: 0.65rem 0.85rem; border-radius: 6px; border: 1px solid var(--border-hairline);"></p>
+            </div>
+
+            <!-- Code Viewer -->
+            <div id="drawer-code-section">
+              <div class="section-label">Source Code</div>
+              <div class="code-box">
+                <div class="code-box-header">
+                  <span>Implementation</span>
+                  <button id="copy-snippet-btn" class="btn btn-ghost btn-sm" style="color: #cbd5e1;">Copy</button>
+                </div>
+                <pre id="drawer-snippet" class="code-box-pre"><code># Loading...</code></pre>
+              </div>
+            </div>
+
+            <!-- Callers -->
+            <div id="drawer-callers-section">
+              <div class="section-label">Callers</div>
+              <div id="drawer-callers-list" class="chip-container"></div>
+            </div>
+
+            <!-- Callees -->
+            <div id="drawer-callees-section">
+              <div class="section-label">Callees</div>
+              <div id="drawer-callees-list" class="chip-container"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Tab 2: Blast Radius Simulator -->
+    <section id="impact-view" class="tab-pane">
+      <div class="view-body">
+        <div class="view-headline-group">
+          <h2 class="view-title">Blast Radius Simulator</h2>
+          <p class="view-subtitle">Predict ripple effects and downstream callers affected when a component is altered.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="field-group">
+              <label class="field-label">Target Function or Method</label>
+              <input type="text" id="sim-input-name" class="text-input" placeholder="e.g. connect" value="connect" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">File Filter (Optional)</label>
+              <input type="text" id="sim-input-file" class="text-input" placeholder="e.g. db.py" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Maximum Propagation Depth: <span id="depth-val">10</span> hops</label>
+              <input type="range" id="sim-input-depth" min="1" max="20" value="10" style="accent-color: var(--accent-sage); width: 100%;" />
+            </div>
+            <button id="run-simulation-btn" class="btn btn-primary" style="width: 100%; margin-top: 0.25rem;">
+              Calculate Impact
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="section-label" style="margin-bottom: 0.5rem;">Impact Summary</div>
+            <div id="sim-summary-container" style="color: var(--text-secondary); font-size: 0.85rem;">
+              <p>Select a component and click Calculate Impact to compute propagation paths.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label" style="margin-bottom: 0.75rem;">Affected Downstream Components</div>
+          <div id="sim-results-list">
+            <p style="color: var(--text-muted); font-size: 0.82rem;">No active simulation results.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Risk Analysis -->
+    <section id="risk-view" class="tab-pane">
+      <div class="view-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div class="view-headline-group">
+            <h2 class="view-title">Architectural Risk Analysis</h2>
+            <p class="view-subtitle">Calculates component fragility from graph topology, blast radius, complexity, and commit churn.</p>
+          </div>
+          <div style="display: flex; gap: 0.4rem;">
+            <button id="risk-tab-fn" class="btn btn-primary btn-sm">Functions</button>
+            <button id="risk-tab-file" class="btn btn-secondary btn-sm">Files</button>
+          </div>
+        </div>
+
+        <div class="card" style="background: #FAF8F5;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Scoring Model:</span>
+              <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-primary); margin-left: 0.5rem;">
+                Risk = (2.5 × In-Degree) + (1.5 × Blast Radius) + (0.05 × LOC) + (2.0 × Churn)
+              </span>
+            </div>
+            <div style="display: flex; gap: 0.4rem;">
+              <span class="risk-tag high">High (&gt;15)</span>
+              <span class="risk-tag medium">Medium (5-15)</span>
+              <span class="risk-tag low">Low (&lt;5)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div id="risk-content-container">
+            <p style="padding: 1.25rem; color: var(--text-muted);">Loading risk metrics...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: ML Similarity -->
+    <section id="similarity-view" class="tab-pane">
+      <div class="view-body">
+        <div class="view-headline-group">
+          <h2 class="view-title">ML Code Similarity Search</h2>
+          <p class="view-subtitle">TF-IDF vector representations and cosine similarity across code signatures and structures.</p>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
+            <div class="field-group" style="flex: 1; margin-bottom: 0;">
+              <label class="field-label">Target Function</label>
+              <input type="text" id="similarity-input-name" class="text-input" placeholder="e.g. login or connect" value="login" />
+            </div>
+            <div class="field-group" style="width: 180px; margin-bottom: 0;">
+              <label class="field-label">Top Results</label>
+              <select id="similarity-topk" class="text-input" style="height: 38px;">
+                <option value="5" selected>Top 5 Matches</option>
+                <option value="10">Top 10 Matches</option>
+                <option value="20">Top 20 Matches</option>
+              </select>
+            </div>
+            <button id="run-similarity-btn" class="btn btn-primary" style="height: 38px;">
+              Search Similar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label" style="margin-bottom: 0.75rem;">Vector Similarity Matches</div>
+          <div id="similarity-results-container" class="grid-2">
+            <p style="color: var(--text-muted); font-size: 0.82rem;">Enter a function name above to compare semantic embeddings.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 5: MCP Hub -->
+    <section id="mcp-view" class="tab-pane">
+      <div class="view-body">
+        <div class="view-headline-group">
+          <h2 class="view-title">Model Context Protocol (MCP) Integration</h2>
+          <p class="view-subtitle">Expose code intelligence tools to Cursor, Claude Desktop, Antigravity, and AI agents.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="section-label">Configuration for Claude / Cursor</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0.4rem 0 0.6rem 0;">
+              Add Codegraph to your <code>claude_desktop_config.json</code>:
+            </p>
+            <div class="code-box">
+              <div class="code-box-header">
+                <span>claude_desktop_config.json</span>
+                <button id="copy-mcp-config-btn" class="btn btn-ghost btn-sm" style="color: #cbd5e1;">Copy Config</button>
+              </div>
+              <pre class="code-box-pre"><code id="mcp-json-config">{
+  "mcpServers": {
+    "codegraph": {
+      "command": "python",
+      "args": ["-m", "indexer", "mcp"],
+      "cwd": "/path/to/Codegraph"
+    }
+  }
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-label">Available Tools</div>
+            <div id="mcp-tools-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Cypher Terminal -->
+        <div class="card">
+          <div class="section-label">Direct Cypher Query Execution</div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <input type="text" id="studio-cypher-input" class="text-input" style="flex: 1; font-family: var(--font-mono); font-size: 0.82rem;" value="MATCH (f:File)-[:CONTAINS]->(fn:Function) RETURN f.path AS file, count(fn) AS functions ORDER BY functions DESC LIMIT 10" />
+            <button id="studio-cypher-btn" class="btn btn-secondary">Run Query</button>
+          </div>
+          <pre id="studio-cypher-output" class="code-box-pre" style="margin-top: 0.75rem; border-radius: 6px; display: none;"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Sheet: Index Codebase -->
+  <div id="index-modal" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-header-bar">
+        <h3 style="font-size: 0.95rem; font-weight: 600;">Index Codebase</h3>
+        <button id="close-index-modal-btn" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+      <div class="modal-body-content">
+        <div class="field-group">
+          <label class="field-label">Directory Path</label>
+          <input type="text" id="modal-index-path" class="text-input" placeholder="e.g. sample or /Users/.../project" value="sample" />
+        </div>
+        <div style="display: flex; gap: 0.4rem; margin-bottom: 0.85rem;">
+          <button class="btn btn-secondary btn-sm" onclick="setModalPath('sample')">Preset: sample</button>
+          <button class="btn btn-secondary btn-sm" onclick="setModalPath('.')">Preset: current repo</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <input type="checkbox" id="modal-index-reset" checked style="accent-color: var(--accent-sage);" />
+          <label for="modal-index-reset" style="font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">
+            Reset existing graph prior to indexing
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer-bar">
+        <button id="cancel-index-btn" class="btn btn-ghost btn-sm">Cancel</button>
+        <button id="submit-index-btn" class="btn btn-primary btn-sm">Start Indexing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Bubbles -->
+  <div id="toast-container"></div>
+
+  <script src="/static/studio.js"></script>
+</body>
+</html>

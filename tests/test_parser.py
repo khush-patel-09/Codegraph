@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from indexer.python_parser import parse_file
+from codegraph.core.parser import parse_file
 
 
 class TestParser(unittest.TestCase):

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codegraph - Code Intelligence & Dependency Map</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <div>
+        <h1>Codegraph</h1>
+        <p class="tagline">Map code dependencies, evaluate risk, search ML code similarity, and empower AI via MCP.</p>
+      </div>
+      <div id="health" class="pill">Checking Neo4j...</div>
+    </header>
+
+    <section class="panel stats" id="stats">
+      <div><span id="stat-files">0</span><label>Files</label></div>
+      <div><span id="stat-functions">0</span><label>Functions</label></div>
+      <div><span id="stat-calls">0</span><label>Calls</label></div>
+      <div><span id="stat-imports">0</span><label>Imports</label></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Index a project</h2>
+        <label for="index-path">Folder path</label>
+        <input id="index-path" type="text" placeholder="C:\path\to\your\project or sample" />
+        <label class="checkbox">
+          <input id="index-reset" type="checkbox" checked /> Clear graph before indexing
+        </label>
+        <button id="index-btn">Index project</button>
+        <pre id="index-result" class="result"></pre>
+      </section>
+
+      <section class="panel">
+        <h2>Impact Analysis</h2>
+        <label for="impact-name">Function name</label>
+        <input id="impact-name" type="text" placeholder="connect" />
+        <label for="impact-file">File (optional)</label>
+        <input id="impact-file" type="text" placeholder="db.py" />
+        <button id="impact-btn">Who breaks if I change this?</button>
+        <div id="impact-result" class="result impact-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>ML Similarity Search</h2>
+        <label for="similar-name">Function name</label>
+        <input id="similar-name" type="text" placeholder="login" />
+        <button id="similar-btn">Find similar functions</button>
+        <div id="similar-result" class="result similarity-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Codebase Risk Heatmap</h2>
+        <div class="risk-controls">
+          <button id="risk-fn-btn" class="active">Top Risky Functions</button>
+          <button id="risk-file-btn" class="secondary">Top Risky Files</button>
+        </div>
+        <div id="risk-result" class="result risk-list"></div>
+      </section>
+    </div>
+
+    <section class="panel graph-panel">
+      <div class="graph-header">
+        <h2>Dependency Graph</h2>
+        <button id="refresh-graph" class="secondary">Refresh Graph</button>
+      </div>
+      <div id="graph"></div>
+    </section>
+
+    <section class="panel mcp-panel">
+      <h2>AI Assistant MCP Server</h2>
+      <p>Expose Codegraph tools to AI assistants (Claude Desktop, Cursor, Antigravity) using standard MCP stdio protocol:</p>
+      <pre class="code-block">python -m indexer mcp</pre>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

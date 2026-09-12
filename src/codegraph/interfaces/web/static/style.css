@@ -1,0 +1,243 @@
+:root {
+  --bg: #0f1419;
+  --panel: #1a2332;
+  --border: #2d3a4d;
+  --text: #e7edf5;
+  --muted: #8fa3bf;
+  --accent: #5b9cff;
+  --accent-hover: #7eb1ff;
+  --danger: #ff6b6b;
+  --ok: #3ddc97;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.03em;
+}
+
+.tagline {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.pill {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.pill.ok { border-color: var(--ok); color: var(--ok); }
+.pill.err { border-color: var(--danger); color: var(--danger); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  text-align: center;
+}
+
+.stats span {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stats label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+label {
+  display: block;
+  margin: 0.75rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #111822;
+  color: var(--text);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #081018;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover { background: var(--accent-hover); }
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.result {
+  margin-top: 1rem;
+  min-height: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+.impact-list .item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.impact-list .item strong { color: var(--text); }
+
+.graph-panel { margin-top: 0.5rem; }
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+#graph {
+  height: 480px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #111822;
+}
+
+.risk-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.risk-controls button {
+  margin-top: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.risk-controls button.active {
+  background: var(--accent);
+  color: #081018;
+}
+
+.risk-card, .sim-card {
+  position: relative;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: #111822;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.risk-badge {
+  display: inline-block;
+  float: right;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.risk-badge.high { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+.risk-badge.medium { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+.risk-badge.low { background: rgba(61, 220, 151, 0.2); color: #3ddc97; border: 1px solid #3ddc97; }
+
+.sub-text, .file-text {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sim-score {
+  float: right;
+  font-size: 0.8rem;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.docstring {
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.mcp-panel {
+  margin-top: 1rem;
+}
+
+.code-block {
+  background: #111822;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-family: monospace;
+  color: var(--ok);
+}
