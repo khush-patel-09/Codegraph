@@ -6,7 +6,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from indexer.config import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USER
-from indexer.impact import class_hierarchy, file_impact, function_impact, graph_snapshot, search_functions, stats
+from indexer.impact import (
+    class_hierarchy,
+    file_impact,
+    function_impact,
+    graph_snapshot,
+    node_details,
+    search_functions,
+    stats,
+)
 from indexer.loader import get_driver, index_directory
 from indexer.ml import find_similar_functions
 from indexer.risk import get_file_risk_scores, get_function_risk_scores
@@ -22,8 +30,28 @@ class IndexRequest(BaseModel):
     reset: bool = True
 
 
+class CypherQueryRequest(BaseModel):
+    query: str
+
+
 @app.get("/")
 def home():
+    studio_file = STATIC_DIR / "studio.html"
+    if studio_file.exists():
+        return FileResponse(studio_file)
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/studio")
+def studio_view():
+    return FileResponse(STATIC_DIR / "studio.html")
+
+
+@app.get("/debug")
+def debug_view():
+    debug_file = STATIC_DIR / "debug.html"
+    if debug_file.exists():
+        return FileResponse(debug_file)
     return FileResponse(STATIC_DIR / "index.html")
 
 
@@ -143,6 +171,36 @@ def api_mcp_info():
     }
 
 
+@app.get("/api/node")
+def api_node_detail(id: int | None = None, name: str | None = None, file: str | None = None):
+    driver = get_driver()
+    try:
+        data = node_details(driver, node_id=id, name=name, file=file)
+        if not data:
+            raise HTTPException(status_code=404, detail="Node not found")
+        return data
+    finally:
+        driver.close()
+
+
+@app.post("/api/query")
+def api_cypher_query(body: CypherQueryRequest):
+    q = body.query.strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    
+    driver = get_driver()
+    try:
+        with driver.session() as session:
+            result = session.run(q)
+            records = [dict(r) for r in result]
+            return {"query": q, "count": len(records), "results": records}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        driver.close()
+
+
 @app.post("/api/index")
 def api_index(body: IndexRequest):
     root = Path(body.path).expanduser().resolve()
@@ -167,3 +225,4 @@ def api_index(body: IndexRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+

@@ -83,10 +83,18 @@ def search_functions(driver: Driver, query_text: str, limit: int = 20) -> list[d
         return [dict(record) for record in result]
 
 
-def graph_snapshot(driver: Driver, limit: int = 200) -> dict:
+def graph_snapshot(driver: Driver, limit: int = 300) -> dict:
     nodes_query = """
     MATCH (n)
     WHERE n:File OR n:Function OR n:Class
+    OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
+    OPTIONAL MATCH (importer:File)-[:IMPORTS]->(n)
+    WITH n, 
+         CASE 
+           WHEN n:Function THEN count(DISTINCT caller)
+           WHEN n:File THEN count(DISTINCT importer)
+           ELSE 0
+         END AS in_degree
     RETURN
         CASE 
           WHEN n:File THEN n.path 
@@ -100,6 +108,11 @@ def graph_snapshot(driver: Driver, limit: int = 200) -> dict:
         END AS type,
         n.path AS file,
         n.name AS name,
+        n.docstring AS docstring,
+        n.line_count AS line_count,
+        n.churn AS churn,
+        n.args AS args,
+        in_degree,
         id(n) AS id
     LIMIT $limit
     """
@@ -115,6 +128,53 @@ def graph_snapshot(driver: Driver, limit: int = 200) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+def node_details(driver: Driver, node_id: int | None = None, name: str | None = None, file: str | None = None) -> dict:
+    """
+    Retrieves full details, relationships, callers, callees, and code snippets for a specific node.
+    """
+    query = """
+    MATCH (n)
+    WHERE ($id IS NOT NULL AND id(n) = $id)
+       OR ($name IS NOT NULL AND n.name = $name AND ($file IS NULL OR n.file = $file))
+       OR ($file IS NOT NULL AND n.path = $file)
+    WITH n LIMIT 1
+    
+    OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
+    WITH n, collect(DISTINCT {name: caller.name, file: caller.file}) AS callers
+    
+    OPTIONAL MATCH (n)-[:CALLS]->(callee:Function)
+    WITH n, callers, collect(DISTINCT {name: callee.name, file: callee.file}) AS callees
+    
+    OPTIONAL MATCH (f:File)-[:CONTAINS]->(n)
+    WITH n, callers, callees, f.path AS containing_file
+    
+    OPTIONAL MATCH (importer:File)-[:IMPORTS]->(n)
+    WITH n, callers, callees, containing_file, collect(DISTINCT importer.path) AS importers
+    
+    OPTIONAL MATCH (n)-[:IMPORTS]->(imported:File)
+    WITH n, callers, callees, containing_file, importers, collect(DISTINCT imported.path) AS imported_files
+    
+    RETURN {
+        id: id(n),
+        labels: labels(n),
+        name: n.name,
+        file: coalesce(n.file, n.path, containing_file),
+        docstring: n.docstring,
+        snippet: n.code_snippet,
+        line_count: n.line_count,
+        args: n.args,
+        churn: n.churn,
+        callers: callers,
+        callees: callees,
+        importers: importers,
+        imported_files: imported_files
+    } AS details
+    """
+    with driver.session() as session:
+        rec = session.run(query, id=node_id, name=name, file=file).single()
+        return rec["details"] if rec and rec["details"] else {}
+
+
 def stats(driver: Driver) -> dict:
     query = """
     MATCH (f:File) WITH count(f) AS files
@@ -126,3 +186,4 @@ def stats(driver: Driver) -> dict:
     with driver.session() as session:
         record = session.run(query).single()
         return dict(record) if record else {"files": 0, "functions": 0, "classes": 0, "calls": 0, "imports": 0}
+

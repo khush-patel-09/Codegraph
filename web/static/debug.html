@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codegraph — Developer Debug Console</title>
+  <link rel="stylesheet" href="/static/studio.css" />
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body style="background: var(--bg-canvas);">
+  <div style="max-width: 1100px; margin: 0 auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+    
+    <!-- Top Banner -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; background: #FAF8F5;">
+      <div>
+        <strong style="font-size: 0.95rem;">Developer Debug Console</strong>
+        <span style="color: var(--text-secondary); margin-left: 8px; font-size: 0.8rem;">Low-level API verification & Cypher terminal</span>
+      </div>
+      <div>
+        <a href="/" class="btn btn-secondary btn-sm">Return to Studio</a>
+      </div>
+    </div>
+
+    <!-- Stats & Health -->
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="stats-segmented">
+        <div class="stat-item">Files: <span class="stat-number" id="stat-files">0</span></div>
+        <div class="stat-item">Functions: <span class="stat-number" id="stat-functions">0</span></div>
+        <div class="stat-item">Classes: <span class="stat-number" id="stat-classes">0</span></div>
+        <div class="stat-item">Calls: <span class="stat-number" id="stat-calls">0</span></div>
+        <div class="stat-item">Imports: <span class="stat-number" id="stat-imports">0</span></div>
+      </div>
+      <div id="connection-pill" class="status-indicator">
+        <div class="status-dot"></div>
+        <span id="connection-text">Connecting</span>
+      </div>
+    </div>
+
+    <!-- Interactive Cypher Query Console -->
+    <div class="card">
+      <div class="section-label">Interactive Cypher Terminal</div>
+      <div style="display: flex; gap: 4px; margin: 0.5rem 0; flex-wrap: wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="setPresetQuery('MATCH (n) RETURN labels(n) AS label, count(n) AS count')">Node Counts</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetQuery('MATCH (fn:Function) RETURN fn.name, fn.file, fn.line_count ORDER BY fn.line_count DESC LIMIT 10')">Top Functions by LOC</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetQuery('MATCH (caller:Function)-[r:CALLS]->(callee:Function) RETURN caller.name AS caller, callee.name AS callee LIMIT 20')">Call Edges</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetQuery('MATCH (f:File) RETURN f.path, f.churn ORDER BY f.churn DESC')">Git Churn by File</button>
+        <button class="btn btn-ghost btn-sm" onclick="setPresetQuery('MATCH (c:Class) OPTIONAL MATCH (c)-[:HAS_METHOD]->(m) RETURN c.name, count(m) AS methods')">Class Methods</button>
+      </div>
+      <textarea id="cypher-input" class="text-input" style="width: 100%; height: 80px; font-family: var(--font-mono); font-size: 0.8rem; margin: 0.4rem 0;">MATCH (n) RETURN labels(n)[0] AS type, count(n) AS count</textarea>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="cypher-run-btn" class="btn btn-primary btn-sm">Execute Query</button>
+      </div>
+      <pre id="cypher-output" class="code-box-pre" style="margin-top: 0.75rem; border-radius: 6px; display: none;"></pre>
+    </div>
+
+    <!-- Debug Utilities Grid -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-label">Index Directory</div>
+        <div class="field-group" style="margin-top: 0.5rem;">
+          <input id="index-path" type="text" class="text-input" placeholder="e.g. sample" value="sample" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem;">
+          <input id="index-reset" type="checkbox" checked style="accent-color: var(--accent-sage);" />
+          <label for="index-reset" style="font-size: 0.78rem; color: var(--text-secondary);">Clear database before indexing</label>
+        </div>
+        <button id="index-btn" class="btn btn-secondary btn-sm" style="width: 100%;">Run Indexer</button>
+        <pre id="index-result" class="code-box-pre" style="margin-top: 0.5rem; display: none;"></pre>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Raw Impact Query</div>
+        <div class="field-group" style="margin-top: 0.5rem;">
+          <input id="impact-name" type="text" class="text-input" placeholder="Function name (e.g. connect)" value="connect" />
+        </div>
+        <button id="impact-btn" class="btn btn-secondary btn-sm" style="width: 100%;">Trace Impact</button>
+        <div id="impact-result" style="margin-top: 0.5rem; font-size: 0.8rem;"></div>
+      </div>
+    </div>
+
+    <!-- Raw Vis Network Canvas -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div class="section-label">Raw Graph Canvas</div>
+        <button id="refresh-graph" class="btn btn-ghost btn-sm">Reload Canvas</button>
+      </div>
+      <div id="graph" style="height: 400px; background: var(--bg-canvas); border-radius: 8px; border: 1px solid var(--border-hairline);"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    function setPresetQuery(q) {
+      document.getElementById('cypher-input').value = q;
+      document.getElementById('cypher-run-btn').click();
+    }
+
+    document.getElementById('cypher-run-btn').addEventListener('click', async () => {
+      const q = document.getElementById('cypher-input').value.trim();
+      const out = document.getElementById('cypher-output');
+      if (!q) return;
+      out.style.display = 'block';
+      out.textContent = 'Executing query...';
+      try {
+        const res = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Query failed');
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        out.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

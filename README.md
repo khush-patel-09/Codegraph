@@ -57,11 +57,12 @@ python -m indexer index sample --reset
   python -m indexer similar login
   ```
 
-- **Start Web Dashboard**:
+- **Start Web Dashboard (Studio & Debugger)**:
   ```bash
   python -m indexer serve
   ```
-  Open http://localhost:8000 in your browser.
+  - **Codegraph Studio UI**: [http://localhost:8000](http://localhost:8000) (Interactive Graph Canvas, Code Inspector, Blast Radius Simulator, Risk Heatmap, ML Similarity Comparator)
+  - **Developer Debug Console**: [http://localhost:8000/debug](http://localhost:8000/debug) (Direct Cypher query terminal & raw node inspection)
 
 - **Start MCP Server**:
   ```bash

@@ -11,6 +11,12 @@ class TestWebApp(unittest.TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get("/studio")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/debug")
+        self.assertEqual(response.status_code, 200)
+
         response = self.client.get("/api/mcp/info")
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -20,3 +26,4 @@ class TestWebApp(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
