@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -242,4 +242,72 @@ def api_index(body: IndexRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+UPLOAD_BASE_DIR = Path(__file__).parent.parent / "data" / "uploads"
+UPLOAD_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.post("/api/upload-and-index")
+async def api_upload_and_index(
+    files: list[UploadFile] = File(...),
+    paths: list[str] = Form(default=[]),
+    reset: bool = Form(default=True),
+):
+    import time
+    import zipfile
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    timestamp = int(time.time() * 1000)
+    upload_dir = UPLOAD_BASE_DIR / f"upload_{timestamp}"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        for idx, file in enumerate(files):
+            rel_path = paths[idx] if idx < len(paths) and paths[idx] else file.filename
+            if not rel_path:
+                rel_path = f"file_{idx}.py"
+
+            if rel_path.endswith(".zip"):
+                zip_target = upload_dir / rel_path
+                zip_target.parent.mkdir(parents=True, exist_ok=True)
+                with open(zip_target, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+                with zipfile.ZipFile(zip_target, "r") as zf:
+                    zf.extractall(upload_dir)
+                continue
+
+            clean_rel = Path(rel_path).as_posix().lstrip("/")
+            if ".." in clean_rel.split("/"):
+                continue
+
+            dest_path = upload_dir / clean_rel
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(dest_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+
+        count = index_directory(
+            upload_dir,
+            uri=NEO4J_URI,
+            user=NEO4J_USER,
+            password=NEO4J_PASSWORD,
+            reset=reset,
+        )
+
+        driver = get_driver()
+        try:
+            summary = stats(driver)
+        finally:
+            driver.close()
+
+        return {"indexed_files": count, "stats": summary, "path": str(upload_dir)}
+    except SystemExit as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
 

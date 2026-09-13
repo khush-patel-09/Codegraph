@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Codebase — Codegraph</title>
+  <link rel="stylesheet" href="/static/upload.css" />
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="top-nav">
+    <a href="/" class="back-link" aria-label="Back to Title Screen">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>Back</span>
+    </a>
+    <span class="brand-label">Codegraph</span>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="upload-container">
+    <!-- Header -->
+    <header class="upload-header">
+      <h1 class="upload-title">Upload Codebase</h1>
+      <p class="upload-subtitle">Choose or drop your project folder to build your interactive dependency map.</p>
+    </header>
+
+    <!-- Upload Card -->
+    <div id="upload-card" class="upload-card">
+      <!-- Folder Dropzone -->
+      <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Drop project folder here">
+        <div class="dropzone-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="dropzone-title">Drag & drop your project folder here</div>
+        <div class="dropzone-desc">or <span class="browse-link">browse folder from computer</span></div>
+        <input type="file" id="folder-input" webkitdirectory directory multiple style="display: none;" />
+      </div>
+
+      <!-- Selected Folder Summary -->
+      <div id="selected-summary" class="selected-summary">
+        <div class="selected-info">
+          <span style="font-size: 1.1rem;">📁</span>
+          <div>
+            <div id="selected-folder-name" style="font-weight: 600;">folder</div>
+            <div id="selected-file-count" style="font-size: 0.78rem; color: var(--text-muted);">0 files</div>
+          </div>
+        </div>
+        <button id="change-folder-btn" class="change-btn">Change</button>
+      </div>
+
+      <!-- Divider -->
+      <div class="or-divider">or enter local path</div>
+
+      <!-- Local Path Input -->
+      <div class="path-section">
+        <div class="path-input-wrapper">
+          <input type="text" id="local-path-input" class="path-input" placeholder="e.g. sample or /Users/.../my_project" />
+        </div>
+        <div class="presets-wrapper">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Presets:</span>
+          <button type="button" class="preset-chip" onclick="setPathPreset('sample')">sample</button>
+          <button type="button" class="preset-chip" onclick="setPathPreset('.')">current repo (.)</button>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="options-wrapper">
+        <input type="checkbox" id="reset-checkbox" checked />
+        <label for="reset-checkbox" class="options-label">Reset existing graph prior to indexing</label>
+      </div>
+
+      <!-- Action Button -->
+      <div class="action-wrapper">
+        <button id="index-btn" class="index-btn" type="button">
+          <span id="btn-spinner" class="spinner"></span>
+          <span id="btn-text">Index Codebase</span>
+          <span id="btn-arrow" class="arrow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- Progress Section -->
+      <div id="progress-card" class="progress-card">
+        <div class="progress-header">
+          <span>Indexing Progress</span>
+          <span id="progress-percent" style="font-family: var(--font-mono); font-weight: 600;">0%</span>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+        <div id="progress-status" class="progress-status">Preparing codebase files...</div>
+      </div>
+
+      <!-- Toast Feedback -->
+      <div id="toast-msg" class="toast-msg"></div>
+    </div>
+
+    <!-- Success Card (Shown after indexing) -->
+    <div id="success-card" class="success-card">
+      <div class="success-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+      <h2 class="success-title">Codebase Successfully Indexed</h2>
+      <p class="success-desc">Your code dependency map has been constructed and stored in the graph database.</p>
+
+      <!-- Graph Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div id="stat-files" class="stat-value">0</div>
+          <div class="stat-name">Files</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-functions" class="stat-value">0</div>
+          <div class="stat-name">Functions</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-classes" class="stat-value">0</div>
+          <div class="stat-name">Classes</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-calls" class="stat-value">0</div>
+          <div class="stat-name">Calls</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-imports" class="stat-value">0</div>
+          <div class="stat-name">Imports</div>
+        </div>
+      </div>
+
+      <!-- CTA to Studio -->
+      <a href="/studio" class="open-studio-btn">
+        <span>Open Codegraph Studio</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+
+      <span id="reindex-link" class="reindex-link">Index another codebase</span>
+    </div>
+  </main>
+
+  <script src="/static/upload.js"></script>
+</body>
+</html>
