@@ -34,20 +34,37 @@ class CypherQueryRequest(BaseModel):
     query: str
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
+    title_file = STATIC_DIR / "title.html"
+    if title_file.exists():
+        return FileResponse(title_file)
     studio_file = STATIC_DIR / "studio.html"
     if studio_file.exists():
         return FileResponse(studio_file)
     return FileResponse(STATIC_DIR / "index.html")
 
 
-@app.get("/studio")
+@app.api_route("/title", methods=["GET", "HEAD"])
+def title_view():
+    return FileResponse(STATIC_DIR / "title.html")
+
+
+@app.api_route("/upload", methods=["GET", "HEAD"])
+def upload_view():
+    upload_file = STATIC_DIR / "upload.html"
+    if upload_file.exists():
+        return FileResponse(upload_file)
+    # Temporary placeholder until user confirms proceeding to Screen 2
+    return FileResponse(STATIC_DIR / "title.html")
+
+
+@app.api_route("/studio", methods=["GET", "HEAD"])
 def studio_view():
     return FileResponse(STATIC_DIR / "studio.html")
 
 
-@app.get("/debug")
+@app.api_route("/debug", methods=["GET", "HEAD"])
 def debug_view():
     debug_file = STATIC_DIR / "debug.html"
     if debug_file.exists():

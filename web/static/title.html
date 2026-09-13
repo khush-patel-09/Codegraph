@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codegraph</title>
+  <link rel="stylesheet" href="/static/title.css" />
+</head>
+
+<body>
+  <main class="title-container">
+    <!-- Minimalist Status / Version Pill -->
+    <!--div class="brand-badge">
+      <span class="brand-badge-dot"></span>
+      <span>Code Intelligence & Architecture Graph</span>
+    </div-->
+
+    <!-- Title Header -->
+    <header class="title-header">
+      <h1 class="title-logo">Codegraph</h1>
+      <p class="title-tagline">Visual dependency topology, risk scoring, and AI agent context.</p>
+    </header>
+
+    <!-- Subtle Accent Line -->
+    <div class="title-divider" aria-hidden="true"></div>
+
+    <!-- 5 Points on How to Use the App -->
+    <section class="points-list" aria-label="How to use Codegraph">
+      <div class="point-item">
+        <span class="point-number">01</span>
+        <div class="point-body">
+          <div class="point-title">Index Your Codebase</div>
+          <div class="point-desc">Upload or specify any Python project folder to extract AST hierarchies, functions, and
+            import graphs into a persistent graph store.</div>
+        </div>
+      </div>
+
+      <div class="point-item">
+        <span class="point-number">02</span>
+        <div class="point-body">
+          <div class="point-title">Explore Dependency Topologies</div>
+          <div class="point-desc">Traverse interactive graph canvases with fluid physics to inspect how modules,
+            classes, and callers interconnect across your architecture.</div>
+        </div>
+      </div>
+
+      <div class="point-item">
+        <span class="point-number">03</span>
+        <div class="point-body">
+          <div class="point-title">Simulate Blast Radius & Impact</div>
+          <div class="point-desc">Test refactoring consequences by revealing upstream callers and downstream
+            dependencies before modifying critical functions or files.</div>
+        </div>
+      </div>
+
+      <div class="point-item">
+        <span class="point-number">04</span>
+        <div class="point-body">
+          <div class="point-title">Analyze Risk & Semantic Similarity</div>
+          <div class="point-desc">Identify fragile hotspots using Git commit churn metrics and caller density, and
+            discover duplicate logic via ML vector search.</div>
+        </div>
+      </div>
+
+      <div class="point-item">
+        <span class="point-number">05</span>
+        <div class="point-body">
+          <div class="point-title">Empower AI Assistants via MCP</div>
+          <div class="point-desc">Expose live codebase graph queries to Claude Desktop, Cursor, and IDE agents using
+            standard Model Context Protocol tools.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Appealing "Start" Button -->
+    <div class="cta-wrapper">
+      <a href="/upload" id="start-btn" class="start-btn" role="button" aria-label="Start Codegraph">
+        <span>Start</span>
+        <span class="arrow-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </span>
+      </a>
+      <!--div class="cta-subtext">
+        <span>Click to begin or press</span>
+        <span class="kbd-badge">↵ Enter</span>
+      </div-->
+    </div>
+  </main>
+
+  <script>
+    // Smooth transition & keyboard interaction
+    const startBtn = document.getElementById('start-btn');
+
+    function proceedToNextScreen(e) {
+      if (e) e.preventDefault();
+      startBtn.style.transform = 'scale(0.96)';
+      startBtn.style.opacity = '0.9';
+
+      // If View Transitions API is supported, perform a silky cross-fade
+      if (document.startViewTransition) {
+        document.startViewTransition(() => {
+          window.location.href = startBtn.getAttribute('href');
+        });
+      } else {
+        window.location.href = startBtn.getAttribute('href');
+      }
+    }
+
+    startBtn.addEventListener('click', proceedToNextScreen);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+        proceedToNextScreen();
+      }
+    });
+  </script>
+</body>
+
+</html>
