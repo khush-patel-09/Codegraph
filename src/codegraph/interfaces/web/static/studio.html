@@ -344,7 +344,11 @@
         <h3 style="font-size: 0.95rem; font-weight: 600;">Index Codebase</h3>
         <button id="close-index-modal-btn" class="btn btn-ghost btn-sm">Close</button>
       </div>
-      <div class="modal-body-content">
+      <div class="modal-body-content" id="modal-drop-zone" style="position: relative;">
+        <div id="drop-zone-overlay" class="drop-zone-overlay">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Drop folder here</span>
+        </div>
         <div class="field-group">
           <label class="field-label">Directory Path</label>
           <input type="text" id="modal-index-path" class="text-input" placeholder="e.g. sample or /Users/.../project" value="sample" />

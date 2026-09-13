@@ -679,6 +679,38 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('close-index-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
   document.getElementById('cancel-index-btn').addEventListener('click', () => modal.classList.remove('active'));
 
+  // Drag and Drop Upload
+  const modalDropZone = document.getElementById('modal-drop-zone');
+  const dropZoneOverlay = document.getElementById('drop-zone-overlay');
+  const modalIndexPath = document.getElementById('modal-index-path');
+
+  modalDropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZoneOverlay.classList.add('dragover');
+  });
+
+  modalDropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    if (!e.relatedTarget || !modalDropZone.contains(e.relatedTarget)) {
+      dropZoneOverlay.classList.remove('dragover');
+    }
+  });
+
+  modalDropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZoneOverlay.classList.remove('dragover');
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      // Use file.path if available (e.g. Electron/local webview), else file.name
+      const path = file.path || file.name;
+      if (path) {
+        modalIndexPath.value = path;
+        showToast('Directory path loaded from drag-and-drop', 'success');
+      }
+    }
+  });
+
   document.getElementById('submit-index-btn').addEventListener('click', async () => {
     const path = document.getElementById('modal-index-path').value.trim();
     const reset = document.getElementById('modal-index-reset').checked;
